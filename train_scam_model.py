@@ -14,10 +14,12 @@ MODEL_FILE = 'hindi_scam_model.pkl'
 VECTORIZER_FILE = 'tfidf_vectorizer.pkl'
 
 def clean_text(text):
+
     import re
     return re.sub(r'\s+', ' ', text).strip()
 
 def load_data():
+    
     keywords_df = pd.read_csv(KEYWORDS_CSV)
     paragraphs_df = pd.read_csv(PARAGRAPHS_CSV)
     kw_data = keywords_df[['Text_Feature', 'Is_Scam_Label']].copy()
@@ -37,11 +39,13 @@ def load_data():
     return full_df
 
 def prepare_features(df, max_features=10000):
+    
     vectorizer = TfidfVectorizer(
         max_features=max_features,
         ngram_range=(1, 2),
         min_df=2, max_df=0.9, lowercase=False,
     )
+    
     X = vectorizer.fit_transform(df['text'].apply(clean_text))
     y = df['label'].values
     print(f'  TF-IDF features shape: {X.shape}')
@@ -49,6 +53,7 @@ def prepare_features(df, max_features=10000):
     return X, y, vectorizer
 
 def train_and_evaluate(X, y, vectorizer):
+    
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
@@ -67,29 +72,42 @@ def train_and_evaluate(X, y, vectorizer):
     top_positive = np.argsort(coefs)[-20:]
     top_negative = np.argsort(coefs)[:20]
     print('  Top 10 SCAM words:')
+    
     for i in top_positive[-10:]:
+    
         print(f'    +{coefs[i]:.3f}  {feature_names[i]}')
+    
     print('  Top 10 SAFE words:')
+    
     for i in top_negative[:10]:
+    
         print(f'    {coefs[i]:+.3f}  {feature_names[i]}')
+    
     return model, vectorizer
 
 def save_model(model, vectorizer):
+    
     joblib.dump(model, MODEL_FILE)
     joblib.dump(vectorizer, VECTORIZER_FILE)
     print(f'  Model saved to: {MODEL_FILE}')
     print(f'  Vectorizer saved to: {VECTORIZER_FILE}')
 
 def main():
+    
     print('=' * 60)
     print('  Training Hindi Scam Detection Model')
     print('=' * 60)
+    
     if not os.path.exists(KEYWORDS_CSV):
+    
         print(f'ERROR: Could not find {KEYWORDS_CSV}')
         exit(1)
+    
     if not os.path.exists(PARAGRAPHS_CSV):
+    
         print(f'ERROR: Could not find {PARAGRAPHS_CSV}')
         exit(1)
+    
     df = load_data()
     X, y, vectorizer = prepare_features(df, max_features=15000)
     model, vectorizer = train_and_evaluate(X, y, vectorizer)
@@ -105,4 +123,5 @@ def main():
     print('    prediction = model.predict(X)[0]  # 1=Scam, 0=Safe')
 
 if __name__ == '__main__':
+
     main()

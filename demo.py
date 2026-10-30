@@ -9,12 +9,16 @@ SR = 16000
 OUT = 'demo_output'
 
 def generate_natural_voice(duration=5.0):
+
     t = np.linspace(0, duration, int(SR * duration))
     f0 = 120 + 8 * np.sin(2 * np.pi * 5 * t)
     phase = 2 * np.pi * np.cumsum(f0) / SR
     signal = np.zeros_like(t)
+    
     for f in [300, 900, 2400]:
+    
         signal += 0.3 * np.sin(2 * np.pi * f * t)
+    
     signal += 0.4 * np.sin(phase)
     envelope = np.ones_like(t)
     attack = int(0.1 * SR); release = int(0.2 * SR)
@@ -24,26 +28,34 @@ def generate_natural_voice(duration=5.0):
     return np.clip(signal * envelope + noise, -1, 1).astype(np.float32)
 
 def generate_synthetic_voice(duration=5.0):
+    
     t = np.linspace(0, duration, int(SR * duration))
     phase = 2 * np.pi * 130 * t
     signal = np.zeros_like(t)
+    
     for f in [350, 850, 2200]:
+    
         signal += 0.25 * np.sin(2 * np.pi * f * t)
+    
     signal += 0.45 * np.sin(phase)
     envelope = np.full_like(t, 0.85)
     noise = 0.01 * np.random.RandomState(99).randn(len(t))
+    
     return np.clip(signal * envelope + noise, -1, 1).astype(np.float32)
 
 def generate_scam_transcript():
+    
     return ('Hello, this is Officer Rajesh from CBI. Digital arrest warrant '
             'issued. Transfer funds immediately to avoid arrest. Do not tell '
             'anyone about this call. Send money via UPI right now.')
 
 def generate_safe_transcript():
+    
     return ('Hello, I am calling from your bank. Your monthly statement '
             'is available online. Visit our website or call back if needed.')
 
 def run_voice_demo():
+    
     print('=' * 60)
     print('DEMO 1: Voice-Clone Detection')
     print('=' * 60)
@@ -64,6 +76,7 @@ def run_voice_demo():
     os.remove(p1); os.remove(p2)
 
 def run_scam_demo():
+    
     print()
     print('=' * 60)
     print('DEMO 2: Scam Script Detection')
@@ -77,6 +90,7 @@ def run_scam_demo():
         r2['is_scam'], r2['risk_score'], r2['summary']))
 
 def run_pipeline_demo():
+    
     print()
     print('=' * 60)
     print('DEMO 3: Full Call-Safety Pipeline')
@@ -105,6 +119,7 @@ def run_pipeline_demo():
     os.remove(p2)
 
 def main():
+    
     run_voice_demo()
     run_scam_demo()
     run_pipeline_demo()
@@ -114,4 +129,5 @@ def main():
     print('=' * 60)
 
 if __name__ == '__main__':
+
     main()

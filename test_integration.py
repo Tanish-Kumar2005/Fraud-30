@@ -1,10 +1,3 @@
-"""
-test_integration.py - Full integration test of the trained model with the call safety assistant.
-
-Run with:
-    python test_integration.py
-"""
-
 import joblib
 import sys
 from call_safety_assistant import CallSafetyAssistant
@@ -16,11 +9,15 @@ print("=" * 60)
 
 # 1. Load the model
 print("\n[1] Loading trained scam model...")
+
 try:
+
     model = joblib.load('hindi_scam_model.pkl')
     vectorizer = joblib.load('tfidf_vectorizer.pkl')
     print("  Model loaded successfully.")
+
 except Exception as e:
+
     print(f"  ERROR: {e}")
     exit(1)
 
@@ -31,6 +28,7 @@ test_cases = [
     ("Aapka account safe hai. Bank se contact karein.", 0),
 ]
 for text, expected in test_cases:
+
     X = vectorizer.transform([text])
     pred = model.predict(X)[0]
     prob = model.predict_proba(X)[0][1]
@@ -62,10 +60,12 @@ voice_result = {
     "confidence": "high",
     "source_file": "test_call.wav"
 }
+
 display.process_voice(voice_result)
 
 # Add a scam warning
 if pred == 1:
+
     display.add("scam_script", "critical",
         f"Scam detected in transcript! Probability: {prob:.1%}",
         {"source": "hindi_scam_model.pkl"})
@@ -75,7 +75,9 @@ print(f"  Verify prompt shown: {display.verify_prompt}")
 
 # 5. Verify all warnings
 print("\n[5] Checking warnings...")
+
 for i, w in enumerate(display.get_active_warnings()):
+
     print(f"  Warning {i+1}: [{w.severity}] {w.message[:60]}...")
 
 # 6. Summary
@@ -83,13 +85,17 @@ print("\n" + "=" * 60)
 print("  INTEGRATION TEST SUMMARY")
 print("=" * 60)
 all_passed = True
+
 if len(display.get_active_warnings()) > 0:
+
     print("  ✓ Model integration")
     print("  ✓ Call safety assistant")
     print("  ✓ Voice display (screen + voice alerts)")
     print("  ✓ Warning generation")
     print("\n  ALL TESTS PASSED!")
+
 else:
+
     print("  Some tests failed!")
     all_passed = False
 
