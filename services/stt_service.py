@@ -1,12 +1,3 @@
-"""
-services/stt_service.py
-
-Speech-to-Text inference service using speech_recognition (Google Web Speech API):
-- Dual-pass recognition: queries primary language first, falls back to secondary on failure.
-- Auto-pads 250ms silence cushions to prevent edge-syllable cutoffs.
-- Soft-attenuates hot signals to prevent clipped audio from failing recognition.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -27,6 +18,7 @@ class SpeechToTextService:
         fallback_language: str = "en-IN",
         sample_rate: int = 16000,
     ):
+        
         self.language = primary_language
         self.primary_language = primary_language
         self.fallback_language = fallback_language
@@ -38,13 +30,20 @@ class SpeechToTextService:
         self._silence_pad = np.zeros(self._pad_samples, dtype=np.float32)
 
     def _prepare_audio(self, audio_array: np.ndarray) -> sr.AudioData:
+        
         """Scales active speech to a safe 0.65 peak and wraps into 16-bit PCM AudioData."""
         peak = float(np.max(np.abs(audio_array)))
+        
         if peak >= 0.01:
+        
             scaled = audio_array * (0.65 / peak)
+        
         elif peak >= 0.002:
+        
             scaled = audio_array * min(3.0, 0.65 / peak)
+        
         else:
+        
             scaled = audio_array
 
         # Sandwich between silence pads so Google's VAD resolves boundary consonants
@@ -53,7 +52,9 @@ class SpeechToTextService:
         return sr.AudioData(pcm_bytes, sample_rate=self.sample_rate, sample_width=2)
 
     def transcribe_array(self, audio_array: np.ndarray) -> dict[str, Any]:
+        
         if audio_array.size == 0:
+        
             return {"success": False, "transcript": "", "error": "Empty buffer"}
 
         duration = round(len(audio_array) / self.sample_rate, 2)
@@ -62,53 +63,75 @@ class SpeechToTextService:
 
         # Pass 1: Try Primary Language
         try:
+        
             transcript = self.recognizer.recognize_google(audio_data, language=self.primary_language)
+        
             return {
+        
                 "success": True,
                 "transcript": transcript,
                 "language": self.primary_language.upper(),
                 "duration": duration,
                 "inference_time": round(time.perf_counter() - t0, 3),
                 "error": None,
+        
             }
+        
         except sr.UnknownValueError:
+        
             pass  # Fall through to Pass 2
+        
         except sr.RequestError as exc:
+        
             return {
+        
                 "success": False,
                 "transcript": "",
                 "language": self.primary_language.upper(),
                 "duration": duration,
                 "inference_time": round(time.perf_counter() - t0, 3),
                 "error": f"API Error: {exc}",
+        
             }
 
         # Pass 2: Fallback Language
         try:
+        
             transcript = self.recognizer.recognize_google(audio_data, language=self.fallback_language)
+        
             return {
+        
                 "success": True,
                 "transcript": transcript,
                 "language": self.fallback_language.upper(),
                 "duration": duration,
                 "inference_time": round(time.perf_counter() - t0, 3),
                 "error": None,
+        
             }
+        
         except sr.UnknownValueError:
+        
             return {
+            
                 "success": True,
                 "transcript": "",
                 "language": "NONE",
                 "duration": duration,
                 "inference_time": round(time.perf_counter() - t0, 3),
                 "error": None,
+            
             }
+        
         except Exception as exc:
+            
             return {
+            
                 "success": False,
                 "transcript": "",
                 "language": "UNKNOWN",
                 "duration": duration,
                 "inference_time": round(time.perf_counter() - t0, 3),
                 "error": str(exc),
+            
             }
