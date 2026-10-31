@@ -23,9 +23,12 @@ db = client[DB_NAME]
 # Collections
 users_col = db["users"]
 alerts_col = db["alerts"]
+otp_col = db["otp"]
 
 # Ensure unique index on email for user credentials
 users_col.create_index("email", unique=True)
+otp_col.create_index("email", unique=True)
+otp_col.create_index("expires_at", expireAfterSeconds=0)
 
 
 def serialize_alert(doc):

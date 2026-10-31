@@ -6,10 +6,10 @@ Real-Time Call Transcription (speech_recognition backend):
 - Anti-aliased 3-tap boxcar downsampler (48kHz -> 16kHz).
 - Dynamic pause-aware utterance segmentation (3.2s to 6.5s window).
 - Decodes via Google Web Speech API with sub-second turnaround.
+- AUTOMATICALLY runs ScamScriptDetector AI on every transcribed chunk.
 """
 
 from __future__ import annotations
-from database import save_transcription_to_sqlite
 from pathlib import Path
 import queue
 import sys
@@ -18,6 +18,11 @@ import time
 import warnings
 import numpy as np
 import soundcard as sc
+import sqlite3
+import datetime
+
+# ✅ 1. Import your AI Engine
+from scam_script_detector import detect_scam_script
 
 warnings.filterwarnings("ignore", category=sc.SoundcardRuntimeWarning)
 
@@ -27,7 +32,40 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from services.stt_service import SpeechToTextService
 
-# Audio Pipeline Settings
+# --- DATABASE SETUP (Replaces old database.py import) ---
+DB_NAME = 'database.db'
+
+def init_db():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS transcriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date_label TEXT,
+            source TEXT,
+            transcript_text TEXT,
+            ai_summary TEXT,
+            risk_level TEXT
+        )
+    ''')
+    # ✅ 2. Wipes the database clean every time a new session starts
+    cursor.execute("DELETE FROM transcriptions")
+    conn.commit()
+    conn.close()
+
+def save_to_db(text, risk_level, ai_summary):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    date_label = datetime.datetime.now().strftime("%H:%M:%S")
+    cursor.execute(
+        "INSERT INTO transcriptions (date_label, source, transcript_text, ai_summary, risk_level) VALUES (?, ?, ?, ?, ?)",
+        (date_label, "System Audio", text, ai_summary, risk_level)
+    )
+    conn.commit()
+    conn.close()
+
+
+# --- AUDIO PIPELINE SETTINGS ---
 SOURCE_SR = 48000
 TARGET_SR = 16000
 BLOCK_FRAMES = 4800                            # 100ms hardware slices @ 48kHz
@@ -106,11 +144,31 @@ def transcription_worker(stt: SpeechToTextService):
             if result.get("success"):
                 transcript = result.get("transcript", "").strip()
                 if transcript:
+                    
+                    # ✅ 3. AI THREAT ANALYSIS
+                    ai_result = detect_scam_script(transcript)
+                    risk_score = ai_result["risk_score"]
+                    ai_summary = ai_result["summary"]
+                    
+                    if risk_score >= 0.6:
+                        risk_level = "HIGH"
+                    elif risk_score >= 0.4:
+                        risk_level = "MEDIUM"
+                    else:
+                        risk_level = "LOW"
+                        # Fallback for clean terminal view if it's completely safe
+                        if "No transcript provided" in ai_summary or risk_score == 0.0:
+                            ai_summary = "Routine conversation. No direct threats detected."
+
+                    # ✅ 4. SAVE TO SQLITE DATABASE
+                    save_to_db(transcript, risk_level, ai_summary)
+
                     ts = time.strftime("%H:%M:%S")
                     print(
-                        f"[{ts}]  Chunk #{chunk_id:03d} "
+                        f"[{ts}] 🚨 {risk_level} RISK | Chunk #{chunk_id:03d} "
                         f"({audio_seconds}s audio | {result['inference_time']}s API | {result['language']}):\n"
                         f" \"{transcript}\"\n"
+                        f" ➔ AI Output: {ai_summary}\n"
                     )
                 else:
                     print(f" [Chunk #{chunk_id:03d}] Inaudible / Skipped by API (Peak: {raw_peak:.4f})")
@@ -121,23 +179,26 @@ def transcription_worker(stt: SpeechToTextService):
 
 
 def main():
+    # ✅ Initialize and WIPE database before we start listening
+    init_db()
+
     print("=" * 76)
     print("   REAL-TIME CALL TRANSCRIPTION (speech_recognition backend)   ")
     print("=" * 76)
 
     speaker, loopback_mic = select_default_loopback()
     print(f" Output Playback : {speaker.name}")
-    print(f"  Loopback Tap    : {loopback_mic.name}\n")
+    print(f" Loopback Tap    : {loopback_mic.name}\n")
 
     # Change primary_language to "en-IN" if calls are mostly in English
-    stt = SpeechToTextService(primary_language="hi-IN", fallback_language="en-IN", sample_rate=TARGET_SR)
+    stt = SpeechToTextService(primary_language="en-IN", fallback_language="en-IN", sample_rate=TARGET_SR)
     print(f" STT Engine      : Google Web Speech (Primary: {stt.primary_language} | Fallback: {stt.fallback_language})")
 
     worker_thread = threading.Thread(target=transcription_worker, args=(stt,), daemon=True)
     worker_thread.start()
 
     print("\n Monitoring active audio stream...")
-    print(" Start scrcpy and begin audio playback. Press Ctrl+C to stop.\n" + "-" * 76)
+    print(" Database wiped. Stream active. Press Ctrl+C to stop.\n" + "-" * 76)
 
     chunk_id = 1
     buffer_16k = np.zeros(0, dtype=np.float32)
@@ -197,7 +258,6 @@ def main():
         stop_event.set()
         worker_thread.join(timeout=1.0)
         print(" Finished.")
-
 
 if __name__ == "__main__":
     main()

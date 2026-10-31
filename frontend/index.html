@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud30 - Cyber Security Defense Platform</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Background Glow Effects -->
+    <div class="bg-grid"></div>
+    <div class="bg-cyan-glow"></div>
+    <div class="bg-magic-glow"></div>
+
+    <div id="auth-pages">
+        <div class="auth-page" id="login-page">
+            <div class="auth-glass">
+                <div class="auth-header">
+                    <div class="brand-mark">
+                        <div class="brand-icon"><i class="fas fa-shield-halved"></i></div>
+                        <div class="brand-text">
+                            <div class="brand-name">FRAUD<span>30</span></div>
+                            <div class="brand-sub">Cyber Security Division</div>
+                        </div>
+                    </div>
+                    <h1>Welcome Back</h1>
+                    <p>Sign in to your SOC analyst account to access threat detection tools</p>
+                </div>
+                <form id="login-form" class="auth-form">
+                    <div class="field-group">
+                        <label class="field-label">
+                            <i class="fas fa-envelope field-icon"></i>
+                            Email Address
+                        </label>
+                        <div class="field-wrapper">
+                            <input type="email" id="login-email" placeholder="name@soc.gov" required>
+                            <div class="field-highlight"></div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">
+                            <i class="fas fa-lock field-icon"></i>
+                            Password
+                        </label>
+                        <div class="field-wrapper">
+                            <input type="password" id="login-password" placeholder="••••••••" required>
+                            <div class="field-highlight"></div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full btn-login">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Sign In</span>
+                    </button>
+                </form>
+                <div class="auth-divider">
+                    <span>OR</span>
+                </div>
+                <button class="btn btn-outline btn-full" onclick="showPage('register-page')">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Create Account</span>
+                </button>
+            </div>
+        </div>
+        <div class="auth-page" id="register-page" style="display: none;">
+            <div class="auth-glass">
+                <div class="auth-header">
+                    <div class="brand-mark">
+                        <div class="brand-icon"><i class="fas fa-shield-halved"></i></div>
+                        <div class="brand-text">
+                            <div class="brand-name">FRAUD<span>30</span></div>
+                            <div class="brand-sub">Cyber Security Division</div>
+                        </div>
+                    </div>
+                    <h1>Create Account</h1>
+                    <p>All fields are mandatory. We'll send a verification OTP to your email.</p>
+                </div>
+                <form id="register-form" class="auth-form">
+                    <div class="field-group">
+                        <label class="field-label">
+                            <i class="fas fa-user field-icon"></i>
+                            Username <span class="required-star">*</span>
+                        </label>
+                        <div class="field-wrapper">
+                            <i class="fas fa-user field-icon"></i>
+                            <input type="text" id="reg-username" placeholder="Enter your username" required>
+                            <div class="field-highlight"></div>
+                            <div class="field-error">Please enter a valid username</div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">
+                            <i class="fas fa-envelope field-icon"></i>
+                            Email Address <span class="required-star">*</span>
+                        </label>
+                        <div class="field-wrapper">
+                            <i class="fas fa-envelope field-icon"></i>
+                            <input type="email" id="reg-email" placeholder="name@organization.gov" required>
+                            <div class="field-highlight"></div>
+                            <div class="field-error">Please enter a valid email address</div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">
+                            <i class="fas fa-envelope field-icon"></i>
+                            Email Address <span class="required-star">*</span>
+                        </label>
+                        <div class="field-wrapper">
+                            <i class="fas fa-envelope field-icon"></i>
+                            <input type="email" id="reg-email" placeholder="name@organization.gov" required>
+                            <div class="field-highlight"></div>
+                            <div class="field-error">Please enter a valid email address</div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">
+                            <i class="fas fa-lock field-icon"></i>
+                            Password <span class="required-star">*</span>
+                        </label>
+                        <div class="field-wrapper">
+                            <i class="fas fa-lock field-icon"></i>
+                            <input type="password" id="reg-password" placeholder="Create a strong password" required>
+                            <div class="field-highlight"></div>
+                            <div class="field-error">Password must be at least 8 characters</div>
+                        </div>
+                        <div class="password-strength" id="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="strength-fill"></div>
+                            </div>
+                            <div class="strength-labels">
+                                <span class="strength-label">Weak</span>
+                                <span class="strength-label">Medium</span>
+                                <span class="strength-label">Strong</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">
+                            <i class="fas fa-phone field-icon"></i>
+                            Family Contact <span class="required-star">*</span>
+                            <span class="field-hint">Enter either a family email OR family phone number</span>
+                        </label>
+                        <div class="contact-options">
+                            <div class="contact-option">
+                                <input type="radio" id="family-email" name="family-contact-type" value="email" checked>
+                                <label for="family-email">
+                                    <i class="fas fa-envelope"></i> Family Email
+                                </label>
+                            </div>
+                            <div class="contact-option">
+                                <input type="radio" id="family-phone" name="family-contact-type" value="phone">
+                                <label for="family-phone">
+                                    <i class="fas fa-phone"></i> Family Phone
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field-wrapper">
+                            <i class="fas fa-envelope field-icon"></i>
+                            <input type="email" id="reg-family-email" placeholder="Enter family email (optional)">
+                            <div class="field-highlight"></div>
+                            <div class="field-error">Please enter a valid family email or phone</div>
+                        </div>
+                        <div class="field-wrapper" id="phone-field-wrapper" style="display: none;">
+                            <i class="fas fa-phone field-icon"></i>
+                            <input type="tel" id="reg-family-phone" placeholder="Enter family phone number">
+                            <div class="field-highlight"></div>
+                            <div class="field-error">Please enter a valid family email or phone</div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">
+                            <i class="fas fa-layer-group field-icon"></i>
+                            Security Tier <span class="required-star">*</span>
+                        </label>
+                        <div class="field-wrapper">
+                            <i class="fas fa-envelope field-icon"></i>
+                            <input type="email" id="reg-family-email" placeholder="family@example.com" required>
+                            <small class="field-hint">Used for emergency verification</small>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Security Tier</label>
+                        <div class="field-wrapper">
+                            <select id="reg-tier" required>
+                                <option value="">Select Security Tier</option>
+                                <option value="SOC Tier-1">SOC Tier-1 - Basic Monitoring</option>
+                                <option value="SOC Tier-2">SOC Tier-2 - Advanced Detection</option>
+                                <option value="SOC Tier-3">SOC Tier-3 - Enterprise Security</option>
+                                <option value="SOC Tier-4">SOC Tier-4 - Critical Infrastructure</option>
+                            </select>
+                            <div class="field-highlight"></div>
+                            <div class="field-error">Please select a security tier</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full btn-register">
+                        <i class="fas fa-user-check"></i>
+                        <span>Register & Send OTP</span>
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="#" onclick="showPage('login-page')">Sign In</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-page" id="otp-page" style="display: none;">
+            <div class="auth-glass">
+                <div class="auth-header">
+                    <div class="brand-mark">
+                        <div class="brand-icon"><i class="fas fa-shield-halved"></i></div>
+                        <div class="brand-text">
+                            <div class="brand-name">FRAUD<span>30</span></div>
+                            <div class="brand-sub">Email Verification</div>
+                        </div>
+                    </div>
+                    <h1>Verify Email</h1>
+                    <p>Enter the 6-digit OTP sent to <span id="otp-email-display"></span></p>
+                </div>
+                <form id="otp-form" class="auth-form">
+                    <div class="field-group">
+                        <label class="field-label">OTP Code</label>
+                        <div class="field-wrapper">
+                            <i class="fas fa-code field-icon"></i>
+                            <input type="text" id="otp-code" maxlength="6" placeholder="000000" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full btn-verify">
+                        <i class="fas fa-check"></i> Verify & Activate Account
+                    </button>
+                </form>
+                <div class="otp-actions">
+                    <button class="btn btn-outline btn-sm" onclick="resendOtp()">
+                        <i class="fas fa-redo"></i> Resend OTP
+                    </button>
+                    <button class="btn btn-text" onclick="showPage('login-page')">
+                        <i class="fas fa-arrow-left"></i> Back to Login
+                    </button>
+                </div>
+                <div id="otp-timer" class="otp-timer">OTP expires in <span id="timer-display">10:00</span></div>
+            </div>
+        </div>
+    </div>
+    <div id="main-app" style="display: none;">
+        <nav class="top-nav">
+            <div class="nav-brand">
+                <div class="brand-icon"><i class="fas fa-shield-halved"></i></div>
+                <div class="brand-text">
+                    <div class="brand-name">FRAUD<span>30</span></div>
+                    <div class="brand-sub">Cyber Security Division</div>
+                </div>
+            </div>
+            <div class="nav-user">
+                <div class="user-info">
+                    <span class="user-name" id="user-email"></span>
+                    <span class="user-tier">SOC Analyst</span>
+                </div>
+                <div class="user-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+            </div>
+        </nav>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Menu</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <button class="menu-item active" onclick="showSection('dashboard')">
+                        <i class="fas fa-th-large"></i>
+                        <span>Dashboard</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="menu-item" onclick="showSection('alerts')">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alerts</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="menu-item" onclick="showSection('transcribe')">
+                        <i class="fas fa-microphone"></i>
+                        <span>Transcribe Audio</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="menu-item" onclick="showSection('settings')">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </button>
+                </li>
+            </ul>
+        </aside>
+        <main class="main-content">
+            <section id="dashboard" class="content-section active">
+                <div class="section-header">
+                    <h1>Dashboard</h1>
+                    <p>Real-time fraud detection overview</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card stat-primary">
+                        <div class="stat-icon"><i class="fas fa-bell"></i></div>
+                        <div class="stat-value" id="stat-total-alerts">0</div>
+                        <div class="stat-label">Total Alerts</div>
+                    </div>
+                    <div class="stat-card stat-danger">
+                        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="stat-value" id="stat-high-risk">0</div>
+                        <div class="stat-label">High Risk</div>
+                    </div>
+                    <div class="stat-card stat-warning">
+                        <div class="stat-icon"><i class="fas fa-shield-alt"></i></div>
+                        <div class="stat-value" id="stat-quarantined">0%</div>
+                        <div class="stat-label">Quarantined</div>
+                    </div>
+                    <div class="stat-card stat-info">
+                        <div class="stat-icon"><i class="fas fa-voice"></i></div>
+                        <div class="stat-value" id="stat-voice-clones">0</div>
+                        <div class="stat-label">Voice Clones</div>
+                    </div>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-chart-bar"></i> Alert Distribution</h3>
+                        <div class="chart-placeholder" id="chart-distribution">
+                            <div class="chart-spark"></div>
+                            <p>Loading data...</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3><i class="fas fa-list-ul"></i> Recent Alerts</h3>
+                        <div class="table-container">
+                            <table id="recent-alerts-table">
+                                <thead>
+                                    <tr><th>Source</th><th>Type</th><th>Risk</th><th>Time</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="4" class="empty-state">No alerts yet</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="analyse" class="content-section">
+                <div class="section-header">
+                    <h1>Analyse Call</h1>
+                    <p>Upload audio or paste transcript for fraud detection</p>
+                </div>
+                <div class="analyse-tabs">
+                    <button class="tab-btn active" onclick="switchTab('audio-tab')">Audio File</button>
+                    <button class="tab-btn" onclick="switchTab('text-tab')">Text Transcript</button>
+                </div>
+                <div id="audio-tab" class="tab-panel active">
+                    <div class="upload-zone"><div class="upload-area" id="upload-area"><i class="fas fa-cloud-upload-alt"></i><p>Click to upload audio file or drag and drop</p><p class="upload-hint">Supports WAV, MP3, M4A, OGG, FLAC (max 50MB)</p><input type="file" id="audio-file" accept=".wav,.mp3,.m4a,.ogg,.flac" style="display: none;"></div></div>
+                    <div class="analysis-options"><label class="checkbox-label"><input type="checkbox" id="delete-after" checked> Delete audio after analysis</label><label class="checkbox-label"><input type="checkbox" id="include-transcript"> Include transcript analysis</label></div>
+                    <div class="manual-transcript" id="manual-transcript-section" style="display: none;"><label>Manual Transcript (optional)</label><textarea id="manual-transcript" rows="4" placeholder="Paste transcript here if you have it..."></textarea></div>
+                    <button class="btn btn-primary btn-full" id="analyse-btn" onclick="analyseAudio()" disabled><i class="fas fa-brain"></i> Analyse Audio</button>
+                </div>
+                <div id="text-tab" class="tab-panel">
+                    <div class="text-input-area"><label>Paste Call Transcript</label><textarea id="text-transcript" rows="6" placeholder="Enter the call transcript text here..."></textarea></div>
+                    <button class="btn btn-primary btn-full" onclick="analyseText()"><i class="fas fa-search"></i> Analyse Transcript</button>
+                </div>
+            </section>
+            <section id="results-section" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h1>Analysis Results</h1>
+                    <button class="btn btn-outline" onclick="showSection('analyse')">Back to Analysis</button>
+                </div>
+                <div class="results-grid">
+                    <div class="result-card result-risk" id="risk-card">
+                        <div class="risk-badge" id="risk-badge">SAFE</div>
+                        <div class="risk-score" id="risk-score">0%</div>
+                        <div class="risk-message" id="risk-message">No significant fraud indicators detected.</div>
+                    </div>
+                    <div class="result-card result-voice" id="voice-result-card" style="display: none;">
+                        <h3><i class="fas fa-voice"></i> Voice Clone Detection</h3>
+                        <div class="detection-detail">
+                            <span class="detail-label">Synthetic Voice:</span>
+                            <span class="detail-value" id="voice-synthetic">No</span>
+                        </div>
+                        <div class="detection-detail">
+                            <span class="detail-label">Probability:</span>
+                            <span class="detail-value" id="voice-prob">0%</span>
+                        </div>
+                        <div class="detection-detail">
+                            <span class="detail-label">Confidence:</span>
+                            <span class="detail-value" id="voice-confidence">-</span>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="voice-progress">
+                                <div class="progress-fill" id="voice-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-card result-scam" id="scam-result-card" style="display: none;">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Scam Script Detection</h3>
+                        <div class="detection-detail">
+                            <span class="detail-label">Scam Detected:</span>
+                            <span class="detail-value" id="scam-detected">No</span>
+                        </div>
+                        <div class="detection-detail">
+                            <span class="detail-label">Risk Score:</span>
+                            <span class="detail-value" id="scam-risk">0%</span>
+                        </div>
+                        <div class="detection-detail">
+                            <span class="detail-label">Tactics:</span>
+                            <span class="detail-value" id="scam-tactics">None</span>
+                        </div>
+                    </div>
+                    <div class="result-card result-warnings" id="warnings-card" style="display: none;">
+                        <h3><i class="fas fa-triangle-exclamation"></i> Warnings</h3>
+                        <div id="warnings-list"></div>
+                    </div>
+                </div>
+                <div class="recommendation-box" id="recommendation-box" style="display: none;">
+                    <h3><i class="fas fa-lightbulb"></i> Recommendation</h3>
+                    <p id="recommendation-text"></p>
+                </div>
+            </section>
+            <section id="alerts" class="content-section">
+                <div class="section-header">
+                    <h1>Alerts</h1>
+                    <p>All fraud detection alerts</p>
+                </div>
+                <div class="alert-filters">
+                    <select id="filter-type" onchange="loadAlerts()">
+                        <option value="ALL">All Types</option>
+                        <option value="CALL">Calls</option>
+                        <option value="SMS">SMS</option>
+                        <option value="VOICE CLONE">Voice Clones</option>
+                    </select>
+                    <select id="filter-risk" onchange="loadAlerts()">
+                        <option value="">All Risk Levels</option>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="LOW">Low</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="loadAlerts()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                <div class="table-container" id="alerts-table-container">
+                    <table id="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>Source</th><th>Type</th><th>Risk Level</th><th>Description</th>
+                                <th>Confidence</th><th>Created</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="7" class="empty-state">Loading alerts...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section id="transcribe" class="content-section">
+                <div class="live-transcription-container" style="margin-top: 25px;">
+                    
+                    <!-- Manual Triggers -->
+                    <div class="controls" style="margin-bottom: 20px;">
+                        <button id="stt-start-btn" onclick="startLiveStt()" style="background: #0ea5e9; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                             Transcribe and Analyse
+                        </button>
+                        <button id="stt-stop-btn" onclick="stopLiveStt()" style="background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: none;">
+                             Stop Analysis
+                        </button>
+                    </div>
+
+        <!-- Live Feed Box -->
+        <div id="live-transcript-feed" class="transcript-box" style="height: 450px; overflow-y: auto; background: #0f172a; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
+            <em style="color: #64748b;">Click "Transcribe and Analyse" to begin monitoring system audio...</em>
+        </div>
+
+    </div>
+    <!-- End of pasted div -->
+
+</section>
+
+                <div class="section-header">
+                    <h1>Transcribe Audio</h1>
+                    <p>Convert audio to text using Google Web Speech API</p>
+                </div>
+                <div class="upload-zone">
+                    <div class="upload-area" id="transcribe-upload-area">
+                        <i class="fas fa-microphone"></i>
+                        <p>Click to upload audio file for transcription</p>
+                        <input type="file" id="transcribe-file" accept=".wav,.mp3,.m4a,.ogg,.flac" style="display: none;">
+                    </div>
+                </div>
+                <div class="transcribe-options">
+                    <label>Language</label>
+                    <select id="transcribe-language">
+                        <option value="en-IN">English (India)</option>
+                        <option value="en-US">English (US)</option>
+                        <option value="hi-IN">Hindi (India)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="transcribeAudio()">
+                    <i class="fas fa-microphone"></i> Transcribe
+                </button>
+                <div id="transcribe-result" style="display: none; margin-top: 20px;">
+                    <h3>Transcription Result</h3>
+                    <div class="transcript-box" id="transcript-text"></div>
+                    <button class="btn btn-outline" onclick="useTranscript()" style="margin-top: 10px;">
+                        Use this transcript for analysis
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i class="fas fa-info-circle" id="toast-icon"></i>
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Dummy health check to stop the crash
+        window.checkHealth = function() {
+            console.log("Health check bypassed.");
+        };
+
+
+        window.startLiveStt = async function() {
+            try {
+                const res = await fetch("/api/stt/start", { method: "POST" });
+                
+                if (res.ok) {
+                    document.getElementById("stt-start-btn").style.display = "none";
+                    document.getElementById("stt-stop-btn").style.display = "inline-block";
+                    document.getElementById("live-transcript-feed").innerHTML = `<em style="color: #38bdf8;">Listening to system audio tap...</em><br><br>`;
+                    
+                    // Attach directly to window under a unique name
+                    window.mySttInterval = setInterval(window.fetchLatestTranscripts, 2000);
+                } else {
+                    alert("Backend STT engine not responding.");
+                }
+            } catch (err) {
+                console.error("Failed to start STT:", err);
+            }
+        };
+
+        window.stopLiveStt = async function() {
+            try {
+                await fetch("/api/stt/stop", { method: "POST" });
+                
+                // Clear using the unique window name
+                clearInterval(window.mySttInterval);
+                
+                document.getElementById("stt-start-btn").style.display = "inline-block";
+                document.getElementById("stt-stop-btn").style.display = "none";
+                document.getElementById("live-transcript-feed").innerHTML += `<br><br><em style="color: #ef4444;">Intercept stopped.</em>`;
+            } catch (err) {
+                console.error("Failed to stop STT:", err);
+            }
+        };
+
+        window.fetchLatestTranscripts = async function() {
+            try {
+                const res = await fetch("/api/transcriptions");
+                if (!res.ok) return;
+                
+                const rows = await res.json();
+                const feed = document.getElementById("live-transcript-feed");
+                if (!feed) return; 
+                
+                feed.innerHTML = rows.map(t => {
+                    let color = t.risk_level === 'HIGH' ? '#ef4444' : (t.risk_level === 'MEDIUM' ? '#f59e0b' : '#22c55e');
+                    let badge = t.risk_level === 'HIGH' ? '🚨 HIGH RISK' : (t.risk_level === 'MEDIUM' ? '⚠️ MEDIUM RISK' : '✅ LOW RISK');
+                    
+                    return `
+                        <div style="margin-bottom: 15px; border-left: 4px solid ${color}; padding: 10px 15px; background: #1e293b; border-radius: 0 8px 8px 0;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <strong style="color: #94a3b8; font-size: 0.85em;">🕒 ${t.date_label || 'Now'}</strong>
+                                <span style="background: ${color}20; color: ${color}; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold;">${badge}</span>
+                            </div>
+                            <span style="color: #f8fafc; font-size: 1.05em; line-height: 1.4;">"${t.transcript_text}"</span><br>
+                            <div style="margin-top: 8px; font-size: 0.9em; color: ${color};">
+                                <strong>AI Analysis:</strong> ${t.ai_summary || 'Analyzing...'}
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+                
+                feed.scrollTop = feed.scrollHeight;
+            } catch (err) {
+                console.error("Error fetching live transcripts:", err);
+            }
+        };
+    </script>
+
+</body>
+</html>
+
+</body>
+</html>
