@@ -1,4 +1,4 @@
-import speechrecognition as sr
+import speech_recognition as sr
 from typing import Dict,Any, Optional
 
 #recognizer
