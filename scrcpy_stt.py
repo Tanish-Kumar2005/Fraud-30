@@ -9,7 +9,7 @@ Real-Time Call Transcription (speech_recognition backend):
 """
 
 from __future__ import annotations
-
+from database import save_transcription_to_sqlite
 from pathlib import Path
 import queue
 import sys

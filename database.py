@@ -1,68 +1,56 @@
-import sqlite3
+import os
+import re
 from datetime import datetime
+from bson.objectid import ObjectId
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from pymongo import MongoClient, DESCENDING
 from werkzeug.security import generate_password_hash, check_password_hash
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-DB_NAME = "fraud30.db"
+
+# Connect to MongoDB
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017/")
+DB_NAME = os.getenv("DB_NAME", "fraud30_db")
+
+client = MongoClient(MONGO_URI)
+db = client[DB_NAME]
+
+# Collections
+users_col = db["users"]
+alerts_col = db["alerts"]
+
+# Ensure unique index on email for user credentials
+users_col.create_index("email", unique=True)
 
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row  # Returns rows as dictionaries
-    return conn
-
-
-def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # 1. Create User Credentials Table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            analyst_name TEXT DEFAULT 'Analyst SecOps',
-            soc_tier TEXT DEFAULT 'SOC Tier-1',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    # 2. Create Alerts Table (starts empty, populated by AI results)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS alerts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            date_label TEXT NOT NULL,
-            type TEXT CHECK(type IN ('SMS', 'CALL', 'VOICE CLONE')) NOT NULL,
-            source TEXT NOT NULL,
-            description TEXT NOT NULL,
-            risk_level TEXT CHECK(risk_level IN ('LOW', 'MEDIUM', 'HIGH')) NOT NULL,
-            quarantined INTEGER DEFAULT 1,
-            confidence REAL DEFAULT 99.82,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-
-# Initialize tables on startup
-init_db()
+def serialize_alert(doc):
+    """Convert MongoDB ObjectId to string for JSON responses."""
+    return {
+        "id": str(doc["_id"]),
+        "user_id": doc.get("user_id"),
+        "date_label": doc.get("date_label"),
+        "type": doc.get("type"),
+        "source": doc.get("source"),
+        "description": doc.get("description"),
+        "risk_level": doc.get("risk_level"),
+        "quarantined": doc.get("quarantined", True),
+        "confidence": doc.get("confidence", 99.82),
+        "created_at": doc.get("created_at")
+    }
 
 
 # ==========================================
-# USER CREDENTIALS / AUTH ROUTES
+# 1. USER CREDENTIALS / AUTH ROUTES
 # ==========================================
 
 @app.route("/api/auth/register", methods=["POST"])
 def register():
-    data = request.get_json()
+    data = request.get_json() or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password")
     analyst_name = data.get("analyst_name", "Analyst SecOps")
@@ -71,106 +59,105 @@ def register():
     if not email or not password:
         return jsonify({"error": "Email and password are required"}), 400
 
-    password_hash = generate_password_hash(password)
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, password_hash, analyst_name, soc_tier) VALUES (?, ?, ?, ?)",
-            (email, password_hash, analyst_name, soc_tier),
-        )
-        conn.commit()
-        user_id = cursor.lastrowid
-        conn.close()
-
-        return jsonify({
-            "id": user_id,
-            "email": email,
-            "analyst_name": analyst_name,
-            "soc_tier": soc_tier
-        }), 201
-    except sqlite3.IntegrityError:
+    if users_col.find_one({"email": email}):
         return jsonify({"error": "User with this email already exists"}), 409
+
+    user_doc = {
+        "email": email,
+        "password_hash": generate_password_hash(password),
+        "analyst_name": analyst_name,
+        "soc_tier": soc_tier,
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+    result = users_col.insert_one(user_doc)
+
+    return jsonify({
+        "id": str(result.inserted_id),
+        "email": email,
+        "analyst_name": analyst_name,
+        "soc_tier": soc_tier
+    }), 201
 
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
-    data = request.get_json()
+    data = request.get_json() or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
 
-    conn = get_db_connection()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-    conn.close()
-
-    if user is None or not check_password_hash(user["password_hash"], password):
+    user = users_col.find_one({"email": email})
+    if not user or not check_password_hash(user["password_hash"], password):
         return jsonify({"error": "Invalid email or password"}), 401
 
     return jsonify({
         "message": "Login successful",
         "user": {
-            "id": user["id"],
+            "id": str(user["_id"]),
             "email": user["email"],
-            "analyst_name": user["analyst_name"],
-            "soc_tier": user["soc_tier"]
+            "analyst_name": user.get("analyst_name", "Analyst SecOps"),
+            "soc_tier": user.get("soc_tier", "SOC Tier-1")
         }
     }), 200
 
 
 # ==========================================
-# AI SCAN RESULT -> SQLITE -> FRONTEND TABLE
+# 2. AI SCAN RESULT -> MONGODB -> FRONTEND
 # ==========================================
 
-def save_ai_result_to_db(type_val, source, description, risk_level, confidence=99.82, quarantined=1, user_id=None):
+def save_ai_result_to_mongo(type_val, source, description, risk_level, confidence=99.82, quarantined=True, user_id=None):
     """
-    Helper function you can call directly from your Python AI script
-    OR via the POST /api/alerts endpoint.
+    Call this directly from your Python AI model script or via POST /api/alerts
     """
-    date_label = f"Today, {datetime.now().strftime('%H:%M')}"
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    valid_types = {"SMS", "CALL", "VOICE CLONE"}
+    valid_risks = {"LOW", "MEDIUM", "HIGH"}
 
-    cursor.execute("""
-        INSERT INTO alerts (user_id, date_label, type, source, description, risk_level, quarantined, confidence)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        user_id,
-        date_label,
-        type_val.upper(),
-        source,
-        description,
-        risk_level.upper(),
-        1 if quarantined else 0,
-        confidence
-    ))
+    clean_type = type_val.upper().strip()
+    clean_risk = risk_level.upper().strip()
 
-    conn.commit()
-    new_id = cursor.lastrowid
-    row = conn.execute("SELECT * FROM alerts WHERE id = ?", (new_id,)).fetchone()
-    conn.close()
-    return dict(row)
+    if clean_type not in valid_types:
+        raise ValueError(f"type must be one of {valid_types}")
+    if clean_risk not in valid_risks:
+        raise ValueError(f"risk_level must be one of {valid_risks}")
+
+    alert_doc = {
+        "user_id": user_id,
+        "date_label": f"Today, {datetime.now().strftime('%H:%M')}",
+        "type": clean_type,
+        "source": source.strip(),
+        "description": description.strip(),
+        "risk_level": clean_risk,
+        "quarantined": bool(quarantined),
+        "confidence": float(confidence),
+        "created_at": datetime.utcnow()
+    }
+
+    result = alerts_col.insert_one(alert_doc)
+    alert_doc["_id"] = result.inserted_id
+    return serialize_alert(alert_doc)
 
 
 @app.route("/api/alerts", methods=["POST"])
 def add_alert():
-    data = request.get_json()
-    type_val = data.get("type")          # 'SMS', 'CALL', or 'VOICE CLONE'
-    source = data.get("source")          # e.g., 'VK-BANKSC' or '+91 98XXX XX210'
-    description = data.get("description")# AI threat summary
-    risk_level = data.get("risk_level")  # 'LOW', 'MEDIUM', or 'HIGH'
+    data = request.get_json() or {}
+    type_val = data.get("type")           # 'SMS', 'CALL', or 'VOICE CLONE'
+    source = data.get("source")           # e.g., 'VK-BANKSC'
+    description = data.get("description") # AI threat explanation
+    risk_level = data.get("risk_level")   # 'LOW', 'MEDIUM', or 'HIGH'
     confidence = data.get("confidence", 99.82)
-    quarantined = data.get("quarantined", 1)
+    quarantined = data.get("quarantined", True)
     user_id = data.get("user_id")
 
     if not all([type_val, source, description, risk_level]):
         return jsonify({"error": "type, source, description, and risk_level are required"}), 400
 
     try:
-        saved_alert = save_ai_result_to_db(
+        saved = save_ai_result_to_mongo(
             type_val, source, description, risk_level, confidence, quarantined, user_id
         )
-        return jsonify(saved_alert), 201
+        return jsonify(saved), 201
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -182,40 +169,36 @@ def get_alerts():
     search = request.args.get("search")
     user_id = request.args.get("user_id")
 
-    query = "SELECT * FROM alerts WHERE 1=1"
-    params = []
+    query = {}
 
     if user_id:
-        query += " AND user_id = ?"
-        params.append(user_id)
+        query["user_id"] = user_id
 
     if type_filter and type_filter.upper() != "ALL":
-        query += " AND type = ?"
-        params.append(type_filter.upper())
+        query["type"] = type_filter.upper()
 
     if risk_filter:
-        query += " AND risk_level = ?"
-        params.append(risk_filter.upper())
+        query["risk_level"] = risk_filter.upper()
 
     if search:
-        query += " AND (source LIKE ? OR description LIKE ? OR type LIKE ? OR date_label LIKE ?)"
-        term = f"%{search}%"
-        params.extend([term, term, term, term])
+        regex = re.compile(re.escape(search), re.IGNORECASE)
+        query["$or"] = [
+            {"source": regex},
+            {"description": regex},
+            {"type": regex},
+            {"date_label": regex}
+        ]
 
-    query += " ORDER BY id DESC"
-
-    conn = get_db_connection()
-    rows = conn.execute(query, params).fetchall()
-    alerts = [dict(row) for row in rows]
+    cursor = alerts_col.find(query).sort("created_at", DESCENDING)
+    alerts = [serialize_alert(doc) for doc in cursor]
 
     # Calculate top dashboard cards & filter tab counters
-    total_alerts = conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0]
-    high_risk = conn.execute("SELECT COUNT(*) FROM alerts WHERE risk_level = 'HIGH'").fetchone()[0]
-    quarantined = conn.execute("SELECT COUNT(*) FROM alerts WHERE quarantined = 1").fetchone()[0]
-    sms_count = conn.execute("SELECT COUNT(*) FROM alerts WHERE type = 'SMS'").fetchone()[0]
-    call_count = conn.execute("SELECT COUNT(*) FROM alerts WHERE type = 'CALL'").fetchone()[0]
-    voice_count = conn.execute("SELECT COUNT(*) FROM alerts WHERE type = 'VOICE CLONE'").fetchone()[0]
-    conn.close()
+    total_alerts = alerts_col.count_documents({})
+    high_risk = alerts_col.count_documents({"risk_level": "HIGH"})
+    quarantined = alerts_col.count_documents({"quarantined": True})
+    sms_count = alerts_col.count_documents({"type": "SMS"})
+    call_count = alerts_col.count_documents({"type": "CALL"})
+    voice_count = alerts_col.count_documents({"type": "VOICE CLONE"})
 
     quarantined_percent = round((quarantined / total_alerts) * 100) if total_alerts > 0 else 0
 
@@ -236,13 +219,15 @@ def get_alerts():
     })
 
 
-@app.route("/api/alerts/<int:alert_id>", methods=["DELETE"])
+@app.route("/api/alerts/<alert_id>", methods=["DELETE"])
 def delete_alert(alert_id):
-    conn = get_db_connection()
-    conn.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({"deleted": True, "id": alert_id})
+    try:
+        result = alerts_col.delete_one({"_id": ObjectId(alert_id)})
+        if result.deleted_count == 0:
+            return jsonify({"error": "Alert not found"}), 404
+        return jsonify({"deleted": True, "id": alert_id})
+    except Exception:
+        return jsonify({"error": "Invalid alert ID"}), 400
 
 
 if __name__ == "__main__":
